@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to Google Sheets</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+        
+        .setup-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .playlist-info {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .video-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .video-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .video-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        
+        .video-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .sheets-section {
+            background: #e8f5e8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #0f9d58;
+        }
+        
+        .sheets-section h4 {
+            color: #0f9d58;
+            margin-bottom: 15px;
+        }
+        
+        .sheets-instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        
+        .sheets-instructions ol {
+            padding-left: 20px;
+        }
+        
+        .sheets-instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 YouTube to Google Sheets</h1>
+        
+        <div class="setup-section">
+            <h3>🔧 API Kurulumu</h3>
+            <div class="input-group">
+                <label for="apiKey">YouTube Data API v3 Anahtarı:</label>
+                <input type="text" id="apiKey" placeholder="AIzaSyC-..." autocomplete="off">
+                <small style="color: #666; font-size: 12px;">
+                    API anahtarınızı <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>'dan alabilirsiniz.
+                </small>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="playlistUrl">🔗 YouTube Oynatma Listesi URL:</label>
+            <input type="url" id="playlistUrl" placeholder="https://www.youtube.com/playlist?list=...">
+        </div>
+        
+        <button onclick="fetchPlaylistData()">📥 Verileri Çek</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Veriler YouTube'dan çekiliyor...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <div class="playlist-info" id="playlistInfo"></div>
+            
+            <div class="sheets-section">
+                <h4>📊 Google Sheets'e Aktarma</h4>
+                <div class="sheets-instructions">
+                    <strong>📝 Nasıl Kullanılır:</strong>
+                    <ol>
+                        <li>Aşağıdaki "Google Sheets Formatını Kopyala" butonuna tıklayın</li>
+                        <li>Yeni bir Google Sheets belgesi açın (<a href="https://sheets.google.com" target="_blank">sheets.google.com</a>)</li>
+                        <li>A1 hücresine yapıştırın (Ctrl+V)</li>
+                        <li>Veriler otomatik olarak tabloya yerleşecektir</li>
+                    </ol>
+                </div>
+                <button onclick="copyForGoogleSheets()">📊 Google Sheets Formatını Kopyala</button>
+                <button onclick="openGoogleSheets()">🔗 Google Sheets'i Aç</button>
+            </div>
+            
+            <table class="video-table" id="videoTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Video Başlığı</th>
+                        <th>Süre</th>
+                        <th>Video URL</th>
+                    </tr>
+                </thead>
+                <tbody id="videoTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let playlistData = null;
+        let apiKey = '';
+
+        function extractPlaylistId(url) {
+            const match = url.match(/[?&]list=([^&#]*)/);
+            return match ? match[1] : null;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `<strong>❌ Hata:</strong> ${message}`;
+            document.querySelector('.container').appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.innerHTML = `<strong>✅ Başarılı:</strong> ${message}`;
+            document.querySelector('.container').appendChild(successDiv);
+            setTimeout(() => successDiv.remove(), 5000);
+        }
+
+        async function fetchPlaylistData() {
+            apiKey = document.getElementById('apiKey').value.trim();
+            const playlistUrl = document.getElementById('playlistUrl').value.trim();
+            
+            if (!apiKey) {
+                showError('YouTube API anahtarı gerekli!');
+                return;
+            }
+            
+            if (!playlistUrl) {
+                showError('Oynatma listesi URL\'si gerekli!');
+                return;
+            }
+
+            const playlistId = extractPlaylistId(playlistUrl);
+            if (!playlistId) {
+                showError('Geçersiz oynatma listesi URL\'si!');
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                // Playlist bilgilerini çek
+                const playlistResponse = await fetch(
+                    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlistId}&key=${apiKey}`
+                );
+                
+                if (!playlistResponse.ok) {
+                    const errorData = await playlistResponse.json().catch(() => null);
+                    const errorMessage = errorData?.error?.message || `HTTP ${playlistResponse.status}`;
+                    throw new Error(`API Hatası: ${errorMessage}`);
+                }
+                
+                const playlistResponseData = await playlistResponse.json();
+                
+                if (!playlistResponseData.items || playlistResponseData.items.length === 0) {
+                    throw new Error('Oynatma listesi bulunamadı!');
+                }
+
+                // Playlist item'larını çek
+                const videosResponse = await fetch(
+                    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${apiKey}`
+                );
+                
+                if (!videosResponse.ok) {
+                    throw new Error(`Video listesi alınamadı: ${videosResponse.status}`);
+                }
+                
+                const videosData = await videosResponse.json();
+                
+                // Video sürelerini almak için video ID'lerini topla
+                const videoIds = videosData.items.map(item => item.snippet.resourceId.videoId).join(',');
+                
+                const durationsResponse = await fetch(
+                    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${apiKey}`
+                );
+                
+                const durationsData = await durationsResponse.json();
+                
+                // Verileri birleştir
+                const videos = videosData.items.map((item, index) => {
+                    const durationData = durationsData.items.find(d => d.id === item.snippet.resourceId.videoId);
+                    const duration = durationData ? formatDuration(durationData.contentDetails.duration) : 'N/A';
+                    
+                    return {
+                        title: item.snippet.title,
+                        duration: duration,
+                        videoId: item.snippet.resourceId.videoId,
+                        url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`
+                    };
+                });
+                
+                playlistData = {
+                    title: playlistResponseData.items[0].snippet.title,
+                    description: playlistResponseData.items[0].snippet.description,
+                    channelTitle: playlistResponseData.items[0].snippet.channelTitle,
+                    videos: videos,
+                    url: playlistUrl
+                };
+                
+                displayResults();
+                showSuccess('Veriler başarıyla çekildi!');
+                
+            } catch (error) {
+                console.error('API Hatası:', error);
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function formatDuration(isoDuration) {
+            const match = isoDuration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+            if (!match) return 'N/A';
+            
+            const hours = parseInt(match[1]) || 0;
+            const minutes = parseInt(match[2]) || 0;
+            const seconds = parseInt(match[3]) || 0;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function displayResults() {
+            const playlistInfo = document.getElementById('playlistInfo');
+            const videoTableBody = document.getElementById('videoTableBody');
+            
+            // Toplam süre hesapla
+            const totalDuration = calculateTotalDuration(playlistData.videos);
+            
+            playlistInfo.innerHTML = `
+                <h3>📋 ${playlistData.title}</h3>
+                <p><strong>📺 Kanal:</strong> ${playlistData.channelTitle}</p>
+                <p><strong>🎬 Video Sayısı:</strong> ${playlistData.videos.length}</p>
+                <p><strong>⏱️ Toplam Süre:</strong> ${totalDuration}</p>
+                <p><strong>🔗 URL:</strong> <a href="${playlistData.url}" target="_blank">Oynatma Listesi</a></p>
+            `;
+            
+            videoTableBody.innerHTML = playlistData.videos.map((video, index) => `
+                <tr>
+                    <td style="text-align: center; font-weight: bold;">${index + 1}</td>
+                    <td>${video.title}</td>
+                    <td style="text-align: center; font-family: monospace;">${video.duration}</td>
+                    <td><a href="${video.url}" target="_blank">Link</a></td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function calculateTotalDuration(videos) {
+            let totalSeconds = 0;
+            
+            videos.forEach(video => {
+                if (video.duration !== 'N/A') {
+                    const parts = video.duration.split(':').map(Number);
+                    if (parts.length === 3) {
+                        totalSeconds += parts[0] * 3600 + parts[1] * 60 + parts[2];
+                    } else if (parts.length === 2) {
+                        totalSeconds += parts[0] * 60 + parts[1];
+                    }
+                }
+            });
+            
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function copyForGoogleSheets() {
+            if (!playlistData) {
+                showError('Önce verileri çekin!');
+                return;
+            }
+            
+            let sheetsData = '';
+            
+            // Başlık bilgileri
+            sheetsData += `${playlistData.title}\n`;
+            sheetsData += `Kanal: ${playlistData.channelTitle}\n`;
+            sheetsData += `Video Sayısı: ${playlistData.videos.length}\n`;
+            sheetsData += `Toplam Süre: ${calculateTotalDuration(playlistData.videos)}\n`;
+            sheetsData += `URL: ${playlistData.url}\n`;
+            sheetsData += `Oluşturulma: ${new Date().toLocaleDateString('tr-TR')}\n`;
+            sheetsData += `\n`; // Boş satır
+            
+            // Tablo başlıkları
+            sheetsData += `Sıra\tVideo Başlığı\tSüre\tVideo URL\n`;
+            
+            // Video verileri
+            playlistData.videos.forEach((video, index) => {
+                sheetsData += `${index + 1}\t${video.title}\t${video.duration}\t${video.url}\n`;
+            });
+            
+            navigator.clipboard.writeText(sheetsData).then(() => {
+                showSuccess('Google Sheets formatı panoya kopyalandı! Şimdi Google Sheets\'i açıp A1 hücresine yapıştırabilirsiniz.');
+            }).catch(err => {
+                console.error('Kopyalama hatası:', err);
+                showError('Kopyalama başarısız oldu. Lütfen manuel olarak seçip kopyalayın.');
+            });
+        }
+
+        function openGoogleSheets() {
+            window.open('https://sheets.google.com/create', '_blank');
+        }
+    </script>
+</body>
+</html>
